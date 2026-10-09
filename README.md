@@ -6,11 +6,14 @@ A booking marketplace for Bangkok, in the spirit of QueQ. Customers browse salon
 
 **Stack:** FastAPI · PostgreSQL · SQLAlchemy · React · TypeScript · TanStack Query · Tailwind CSS · GitHub Actions
 
-## Try it
+## How it works for owners and customers
 
-- **Marketplace:** `/` lists 10 demo shops around Bangkok, with search and category filters
-- **Demo booking page:** `/b/sunny-salon`
-- **Demo owner login:** `demo@natbook.app` / `demo-password`
+1. **A shop owner signs up** at `/register`, creates their shop (name, category, area, description) and adds services and opening hours.
+2. **The shop gets its own booking link** (`/b/your-shop`) to share on LINE, Instagram or Google Maps, and it appears in the marketplace at `/`.
+3. **Customers book** a free time slot from the marketplace or the link. No account needed.
+4. **The owner receives the booking** on their dashboard, which updates automatically and marks new bookings.
+
+A new install starts with no shops. For testing or screenshots, `python dev.py --demo` adds 10 sample shops around Bangkok, with the sample owner login `demo@natbook.app` / `demo-password`.
 
 ## Highlights
 
@@ -50,7 +53,7 @@ npm install
 npm run dev
 ```
 
-Running `dev.py` creates the 10 demo shops. The demo login owns Sunny Salon.
+Use `python dev.py --demo` to start with sample shops instead of an empty marketplace.
 
 ## Tests
 

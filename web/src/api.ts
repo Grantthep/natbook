@@ -14,6 +14,7 @@ export type Booking = {
   starts_at: string
   ends_at: string
   status: 'confirmed' | 'cancelled'
+  created_at: string
 }
 
 export class ApiError extends Error {

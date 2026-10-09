@@ -65,7 +65,17 @@ export default function Home() {
         {shops.isPending && <ShopGridSkeleton />}
         {shops.data?.length === 0 && (
           <div className="mt-6 rounded-3xl border border-dashed border-stone-300 p-10 text-center text-stone-600">
-            No places match that yet. Try another search or category.
+            {category || q ? (
+              'No places match that yet. Try another search or category.'
+            ) : (
+              <>
+                <p className="text-lg font-semibold text-stone-800">No shops have joined yet.</p>
+                <p className="mt-1">Own a shop, clinic or studio? Be the first to take bookings on NatBook.</p>
+                <Link to="/register" className="mt-5 inline-block rounded-full bg-teal-700 px-6 py-3 font-semibold text-white hover:bg-teal-800">
+                  Add your shop
+                </Link>
+              </>
+            )}
           </div>
         )}
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

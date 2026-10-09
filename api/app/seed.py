@@ -1,4 +1,5 @@
-"""Create demo shops around Bangkok if they don't exist yet:  python -m app.seed"""
+"""Sample shops around Bangkok for local testing and screenshots, never for production:
+python dev.py --demo   (or  python -m app.seed  against any database you don't care about)"""
 import secrets
 from datetime import time
 

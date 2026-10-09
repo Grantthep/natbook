@@ -6,6 +6,8 @@ import { CATEGORIES, categoryOf } from '../categories'
 import { WEEKDAYS, dateTime, thb } from '../format'
 import { Button, Card, ErrorText, Field, Select, ShopCover, TextArea, TopBar } from '../ui'
 
+const DAY_MS = 24 * 60 * 60 * 1000 // bookings made in the last day get a "New" badge
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -154,7 +156,8 @@ function ShareLink({ business }: { business: Business }) {
 
 function Bookings({ timezone }: { timezone: string }) {
   const queryClient = useQueryClient()
-  const bookings = useQuery({ queryKey: ['bookings'], queryFn: () => api<Booking[]>('/business/bookings') })
+  // Poll so new customer bookings show up without reloading. shortcut: polling, switch to WebSockets if it ever matters.
+  const bookings = useQuery({ queryKey: ['bookings'], queryFn: () => api<Booking[]>('/business/bookings'), refetchInterval: 15_000 })
   const cancel = useMutation({
     mutationFn: (id: number) => api<Booking>(`/business/bookings/${id}/cancel`, { method: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
@@ -162,7 +165,7 @@ function Bookings({ timezone }: { timezone: string }) {
   const confirmed = bookings.data?.filter((b) => b.status === 'confirmed') ?? []
 
   return (
-    <Card title="Upcoming bookings">
+    <Card title="Upcoming bookings" action={<span className="text-xs text-stone-500">Updates automatically</span>}>
       {bookings.isPending && <p className="text-stone-600">Loading…</p>}
       <ErrorText error={bookings.error ?? cancel.error} />
       {bookings.isSuccess && confirmed.length === 0 && <p className="text-stone-600">No upcoming bookings yet.</p>}
@@ -170,7 +173,12 @@ function Bookings({ timezone }: { timezone: string }) {
         {confirmed.map((b) => (
           <li key={b.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-medium">{dateTime(b.starts_at, timezone)} · {b.service_name}</p>
+              <p className="font-medium">
+                {dateTime(b.starts_at, timezone)} · {b.service_name}
+                {Date.now() - Date.parse(b.created_at) < DAY_MS && (
+                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">New</span>
+                )}
+              </p>
               <p className="text-sm text-stone-600">
                 {b.customer_name} · {b.customer_email}{b.customer_phone && ` · ${b.customer_phone}`}
               </p>
