@@ -1,0 +1,6 @@
+fastapi[standard]
+sqlalchemy>=2
+psycopg[binary]
+pyjwt
+argon2-cffi
+tzdata
