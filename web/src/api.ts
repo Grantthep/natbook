@@ -1,6 +1,8 @@
 export type Service = { id: number; name: string; duration_min: number; price_thb: number }
 export type Hours = { weekday: number; opens: string; closes: string }
-export type Business = { name: string; slug: string; timezone: string; services: Service[]; hours: Hours[] }
+export type ShopCard = { name: string; slug: string; category: string; area: string; description: string }
+export type ShopListItem = ShopCard & { min_price: number; service_count: number }
+export type Business = ShopCard & { timezone: string; services: Service[]; hours: Hours[] }
 export type User = { id: number; email: string }
 export type Booking = {
   id: number

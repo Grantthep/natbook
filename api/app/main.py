@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,12 +6,15 @@ from fastapi import FastAPI
 from . import auth, owner, public
 from .db import engine
 from .models import Base
+from .seed import seed
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # shortcut: create_all instead of migrations; add Alembic before the first schema change after launch.
     Base.metadata.create_all(engine())
+    if os.getenv("SEED_DEMO") == "true":
+        seed()
     yield
 
 

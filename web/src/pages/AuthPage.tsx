@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { api, type User } from '../api'
-import { Button, Card, ErrorText, Field, Logo } from '../ui'
+import { Button, Card, ErrorText, Field, TopBar } from '../ui'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const navigate = useNavigate()
@@ -23,10 +23,14 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
 
   const isLogin = mode === 'login'
   return (
-    <div className="mx-auto max-w-sm px-4 py-10">
-      <Logo />
-      <div className="mt-8">
-        <Card title={isLogin ? 'Log in' : 'Create your account'}>
+    <div className="min-h-screen">
+      <TopBar>{null}</TopBar>
+      <div className="mx-auto max-w-sm px-4 py-12">
+        <h1 className="text-3xl font-extrabold tracking-tight">{isLogin ? 'Welcome back' : 'Get your booking page'}</h1>
+        <p className="mb-6 mt-2 text-stone-600">
+          {isLogin ? 'Log in to manage your shop and bookings.' : 'Free for shops, clinics and tutors. Set up in 2 minutes.'}
+        </p>
+        <Card>
           <form onSubmit={onSubmit} className="space-y-4">
             <Field label="Email" name="email" type="email" autoComplete="email" required />
             <Field

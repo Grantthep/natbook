@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { api, ApiError, type Booking, type Business, type Hours, type User } from '../api'
+import { CATEGORIES, categoryOf } from '../categories'
 import { WEEKDAYS, dateTime, thb } from '../format'
-import { Button, Card, ErrorText, Field, Logo } from '../ui'
+import { Button, Card, ErrorText, Field, Select, ShopCover, TextArea, TopBar } from '../ui'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -21,30 +22,72 @@ export default function Dashboard() {
   const needsSetup = business.error instanceof ApiError && business.error.status === 404
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <header className="mb-6 flex items-center justify-between gap-4">
-        <Logo />
-        <div className="flex items-center gap-3 text-sm">
-          <span className="hidden text-stone-600 sm:inline">{me.data?.email}</span>
-          <Button variant="ghost" onClick={logout}>Log out</Button>
-        </div>
-      </header>
+    <div className="min-h-screen">
+      <TopBar>
+        <span className="hidden text-stone-500 sm:inline">{me.data?.email}</span>
+        <Button variant="ghost" onClick={logout}>Log out</Button>
+      </TopBar>
 
-      {needsSetup && <CreateBusiness />}
-      {(me.isPending || business.isPending) && !needsSetup && <p className="text-stone-600">Loading…</p>}
-      <ErrorText error={!needsSetup && (me.error ?? business.error)} />
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        {needsSetup && <CreateBusiness />}
+        {(me.isPending || business.isPending) && !needsSetup && <div className="h-40 animate-pulse rounded-3xl bg-stone-200/70" />}
+        <ErrorText error={!needsSetup && (me.error ?? business.error)} />
 
-      {business.data && (
-        <div className="grid gap-6">
-          <ShareLink business={business.data} />
-          <Bookings timezone={business.data.timezone} />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Services business={business.data} />
-            <OpeningHours hours={business.data.hours} />
+        {business.data && (
+          <div className="grid gap-6">
+            <ShareLink business={business.data} />
+            <Bookings timezone={business.data.timezone} />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Services business={business.data} />
+              <OpeningHours hours={business.data.hours} />
+            </div>
+            <ShopDetails business={business.data} />
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
+  )
+}
+
+type Details = { name: string; category: string; area: string; description: string }
+
+/** Name, category, area and description inputs, shared by "create" and "edit". */
+function DetailsFields({ value, onChange }: { value: Details; onChange: (d: Details) => void }) {
+  return (
+    <>
+      <Field label="Shop name" value={value.name} required maxLength={100} placeholder="Sunny Salon"
+        onChange={(e) => onChange({ ...value, name: e.target.value })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Select label="Category" value={value.category} onChange={(e) => onChange({ ...value, category: e.target.value })}>
+          {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </Select>
+        <Field label="Area" value={value.area} maxLength={60} placeholder="Ari, Sukhumvit 24, Silom…"
+          onChange={(e) => onChange({ ...value, area: e.target.value })} />
+      </div>
+      <TextArea label="Short description" value={value.description} maxLength={300} placeholder="What makes your place great?"
+        onChange={(e) => onChange({ ...value, description: e.target.value })} />
+    </>
+  )
+}
+
+function ShopDetails({ business }: { business: Business }) {
+  const save = useSaveBusiness()
+  const [details, setDetails] = useState<Details>(business)
+  const update = useMutation({
+    mutationFn: () => api<Business>('/business', { method: 'PATCH', body: { ...details, timezone: business.timezone } }),
+    onSuccess: save,
+  })
+  return (
+    <Card title="Shop details">
+      <form onSubmit={(e) => { e.preventDefault(); update.mutate() }} className="space-y-4">
+        <DetailsFields value={details} onChange={setDetails} />
+        <ErrorText error={update.error} />
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={update.isPending}>Save details</Button>
+          {update.isSuccess && <span className="text-sm font-semibold text-teal-800">Saved</span>}
+        </div>
+      </form>
+    </Card>
   )
 }
 
@@ -55,18 +98,18 @@ function useSaveBusiness() {
 
 function CreateBusiness() {
   const save = useSaveBusiness()
-  const [name, setName] = useState('')
+  const [details, setDetails] = useState<Details>({ name: '', category: 'salon', area: '', description: '' })
   const [slug, setSlug] = useState('')
-  const create = useMutation({ mutationFn: () => api<Business>('/business', { body: { name, slug } }), onSuccess: save })
+  const create = useMutation({ mutationFn: () => api<Business>('/business', { body: { ...details, slug } }), onSuccess: save })
 
   return (
-    <Card title="Set up your business">
+    <Card title="Set up your shop" className="mx-auto max-w-2xl">
       <form onSubmit={(e) => { e.preventDefault(); create.mutate() }} className="space-y-4">
-        <Field
-          label="Business name" value={name} required maxLength={100} placeholder="Sunny Salon"
-          onChange={(e) => {
-            setName(e.target.value)
-            setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40))
+        <DetailsFields
+          value={details}
+          onChange={(d) => {
+            if (d.name !== details.name) setSlug(d.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40))
+            setDetails(d)
           }}
         />
         <Field
@@ -75,7 +118,7 @@ function CreateBusiness() {
         />
         <p className="text-sm text-stone-600">Customers will book at {location.origin}/b/{slug || 'your-link'}</p>
         <ErrorText error={create.error} />
-        <Button type="submit" disabled={create.isPending}>Create business</Button>
+        <Button type="submit" disabled={create.isPending}>Create my booking page</Button>
       </form>
     </Card>
   )
@@ -86,8 +129,14 @@ function ShareLink({ business }: { business: Business }) {
   const [copied, setCopied] = useState(false)
   return (
     <Card>
-      <h1 className="text-2xl font-bold">{business.name}</h1>
-      <p className="mt-1 text-sm text-stone-600">Share this link with your customers:</p>
+      <div className="flex items-center gap-4">
+        <ShopCover category={business.category} className="h-16 w-16 shrink-0 rounded-2xl [&>span]:text-3xl" />
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">{business.name}</h1>
+          <p className="text-sm text-stone-500">{categoryOf(business.category).label}{business.area && ` · ${business.area}`}</p>
+        </div>
+      </div>
+      <p className="mt-4 text-sm text-stone-600">Share your booking page with customers:</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate rounded-lg bg-stone-100 px-3 py-2 text-teal-800 hover:underline">{url}</a>
         <Button variant="ghost" onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true))}>

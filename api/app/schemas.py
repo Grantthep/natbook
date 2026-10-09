@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -15,9 +16,14 @@ class UserOut(BaseModel):
     email: str
 
 
-class BusinessIn(BaseModel):
+Category = Literal["salon", "spa", "nails", "clinic", "dental", "fitness", "tutor", "pet"]
+
+
+class BusinessDetails(BaseModel):
     name: str = Field(min_length=1, max_length=100)
-    slug: str = Field(pattern=r"^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$")
+    category: Category
+    area: str = Field(default="", max_length=60)
+    description: str = Field(default="", max_length=300)
     timezone: str = "Asia/Bangkok"
 
     @field_validator("timezone")
@@ -28,6 +34,10 @@ class BusinessIn(BaseModel):
         except Exception:
             raise ValueError("unknown timezone")
         return v
+
+
+class BusinessIn(BusinessDetails):
+    slug: str = Field(pattern=r"^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$")
 
 
 class HoursIn(BaseModel):
@@ -54,9 +64,21 @@ class ServiceOut(ServiceIn):
     id: int
 
 
-class BusinessOut(BaseModel):
+class ShopCard(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     slug: str
+    category: str
+    area: str
+    description: str
+
+
+class ShopListItem(ShopCard):
+    min_price: int
+    service_count: int
+
+
+class BusinessOut(ShopCard):
     timezone: str
     services: list[ServiceOut]
     hours: list[HoursIn]

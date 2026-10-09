@@ -2,15 +2,15 @@
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .db import get_db
 from .models import Booking, Business, Service
 from .owner import business_out
-from .schemas import BookingIn, BookingOut, BusinessOut, SlotsOut
+from .schemas import BookingIn, BookingOut, BusinessOut, Category, ShopCard, ShopListItem, SlotsOut
 from .slots import free_slots
 
 router = APIRouter()
@@ -46,6 +46,34 @@ def _slots(business: Business, service: Service, day: date, db: Session) -> list
     ).all()
     return free_slots(day, business.timezone, hours.opens, hours.closes,
                       timedelta(minutes=service.duration_min), busy, datetime.now(UTC))
+
+
+@router.get("", response_model=list[ShopListItem])
+def shops(category: Category | None = None, q: str | None = Query(default=None, max_length=60), db: Session = Depends(get_db)):
+    """Bookable shops (at least one service and opening hours), for the marketplace home page."""
+    stats = (
+        select(Service.business_id, func.min(Service.price_thb).label("min_price"), func.count().label("service_count"))
+        .where(Service.active).group_by(Service.business_id).subquery()
+    )
+    # shortcut: no pagination; add it once there are a few hundred shops.
+    query = (
+        select(Business, stats.c.min_price, stats.c.service_count)
+        .join(stats, stats.c.business_id == Business.id)
+        .where(Business.hours.any())
+        .order_by(Business.name)
+    )
+    if category:
+        query = query.where(Business.category == category)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        query = query.where(or_(
+            Business.name.ilike(like), Business.area.ilike(like), Business.description.ilike(like),
+            Business.services.any(and_(Service.active, Service.name.ilike(like))),
+        ))
+    return [
+        ShopListItem(**ShopCard.model_validate(b).model_dump(), min_price=price, service_count=count)
+        for b, price, count in db.execute(query)
+    ]
 
 
 @router.get("/{slug}", response_model=BusinessOut)

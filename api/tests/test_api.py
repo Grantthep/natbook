@@ -18,7 +18,8 @@ def next_monday():
 
 def setup_salon(client):
     assert client.post("/api/auth/register", json=OWNER).status_code == 201
-    assert client.post("/api/business", json={"name": "Sunny Salon", "slug": "sunny-salon"}).status_code == 201
+    shop = {"name": "Sunny Salon", "slug": "sunny-salon", "category": "salon", "area": "Ari"}
+    assert client.post("/api/business", json=shop).status_code == 201
     hours = [{"weekday": d, "opens": "09:00", "closes": "17:00"} for d in range(7)]
     assert client.put("/api/business/hours", json=hours).status_code == 200
     service = client.post("/api/business/services", json={"name": "Haircut", "duration_min": 60, "price_thb": 400})
@@ -81,6 +82,27 @@ def test_booking_outside_opening_hours_is_rejected(client):
     assert r.status_code == 409
 
 
+def test_marketplace_lists_only_bookable_shops_and_filters(client):
+    setup_salon(client)
+    client.post("/api/auth/register", json={"email": "new@example.com", "password": "new-owner-1"})
+    client.post("/api/business", json={"name": "Empty Spa", "slug": "empty-spa", "category": "spa"})  # no services yet
+
+    shops = client.get("/api/public").json()
+    assert [s["slug"] for s in shops] == ["sunny-salon"]
+    assert shops[0]["min_price"] == 400 and shops[0]["service_count"] == 1
+
+    assert client.get("/api/public", params={"category": "spa"}).json() == []
+    assert len(client.get("/api/public", params={"q": "haircut"}).json()) == 1  # matches service names
+    assert len(client.get("/api/public", params={"q": "ari"}).json()) == 1  # and areas
+    assert client.get("/api/public", params={"category": "bakery"}).status_code == 422
+
+
+def test_owner_can_edit_shop_details(client):
+    setup_salon(client)
+    r = client.patch("/api/business", json={"name": "Sunny Salon & Spa", "category": "spa", "area": "Thonglor"})
+    assert r.status_code == 200 and r.json()["area"] == "Thonglor" and r.json()["slug"] == "sunny-salon"
+
+
 def test_owner_pages_need_login(client):
     assert client.get("/api/business").status_code == 401
 
@@ -92,7 +114,7 @@ def test_owners_cannot_touch_each_others_bookings(client):
                              json={"service_id": service_id, "starts_at": chosen, **CUSTOMER}).json()["id"]
 
     client.post("/api/auth/register", json={"email": "rival@example.com", "password": "another-pass"})
-    client.post("/api/business", json={"name": "Rival Spa", "slug": "rival-spa"})
+    client.post("/api/business", json={"name": "Rival Spa", "slug": "rival-spa", "category": "spa"})
     assert client.post(f"/api/business/bookings/{booking_id}/cancel").status_code == 404
 
 

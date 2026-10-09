@@ -9,15 +9,15 @@ from sqlalchemy.orm import Session
 from .auth import current_user
 from .db import get_db
 from .models import Booking, Business, OpeningHours, Service, User
-from .schemas import BookingOut, BusinessIn, BusinessOut, HoursIn, ServiceIn, ServiceOut
+from .schemas import BookingOut, BusinessDetails, BusinessIn, BusinessOut, HoursIn, ServiceIn, ServiceOut
 
 router = APIRouter()
 
 
 def business_out(b: Business) -> BusinessOut:
     return BusinessOut(
-        name=b.name, slug=b.slug, timezone=b.timezone,
-        services=[s for s in b.services if s.active], hours=b.hours,
+        name=b.name, slug=b.slug, category=b.category, area=b.area, description=b.description,
+        timezone=b.timezone, services=[s for s in b.services if s.active], hours=b.hours,
     )
 
 
@@ -43,6 +43,14 @@ def create_business(body: BusinessIn, user: User = Depends(current_user), db: Se
 
 @router.get("", response_model=BusinessOut)
 def get_business(business: Business = Depends(my_business)):
+    return business_out(business)
+
+
+@router.patch("", response_model=BusinessOut)
+def update_business(body: BusinessDetails, business: Business = Depends(my_business), db: Session = Depends(get_db)):
+    for field, value in body.model_dump().items():
+        setattr(business, field, value)
+    db.commit()
     return business_out(business)
 
 

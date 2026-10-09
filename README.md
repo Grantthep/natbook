@@ -1,6 +1,6 @@
 # NatBook
 
-Online booking for small businesses in Thailand: salons, massage shops, tutors and studios. Each business gets its own booking page where customers pick a service and a free time slot. The owner manages services, opening hours and bookings from a dashboard.
+A booking marketplace for Bangkok, in the spirit of QueQ. Customers browse salons, massage shops, nail studios, clinics, dentists, gyms, tutors and pet groomers, search by service or area, and book a free time slot in a few taps. Each shop owner manages their services, opening hours, shop details and bookings from a dashboard.
 
 *Nat (นัด) is Thai for "appointment".*
 
@@ -8,6 +8,7 @@ Online booking for small businesses in Thailand: salons, massage shops, tutors a
 
 ## Try it
 
+- **Marketplace:** `/` lists 10 demo shops around Bangkok, with search and category filters
 - **Demo booking page:** `/b/sunny-salon`
 - **Demo owner login:** `demo@natbook.app` / `demo-password`
 
@@ -22,7 +23,7 @@ Online booking for small businesses in Thailand: salons, massage shops, tutors a
 
 ```
 web/  React + TypeScript (Vite)       api/  FastAPI + SQLAlchemy
-  /               landing page          app/auth.py    register, login, logout
+  /               marketplace + search  app/auth.py    register, login, logout
   /register       owner sign-up         app/owner.py   business, services, hours, bookings
   /dashboard      owner dashboard       app/public.py  booking page, free slots, book
   /b/:slug        customer booking      app/slots.py   free-slot calculation
@@ -49,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Running `dev.py` creates the demo account and the Sunny Salon booking page.
+Running `dev.py` creates the 10 demo shops. The demo login owns Sunny Salon.
 
 ## Tests
 
@@ -67,5 +68,7 @@ GitHub Actions runs both on every push.
 - [ ] PromptPay deposits with Stripe
 - [ ] Multiple staff members per business
 - [ ] Thai / English language switch
+- [ ] Shop photos and customer reviews
+- [ ] Customer accounts with "My bookings"
 - [ ] LINE notifications
 - [ ] Flutter customer app using the same API
