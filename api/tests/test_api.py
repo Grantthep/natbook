@@ -121,6 +121,31 @@ def test_customer_views_and_cancels_with_private_link(client):
     assert "manage_token" not in client.get("/api/business/bookings").json()[0]
 
 
+def test_booking_is_rate_limited_per_visitor(client):
+    service_id = setup_salon(client)
+    taken = {"service_id": service_id, "starts_at": "2000-01-01T09:00:00+07:00", **CUSTOMER}  # always rejected
+    codes = [client.post("/api/public/sunny-salon/bookings", json=taken).status_code for _ in range(21)]
+    assert codes[:20] == [409] * 20 and codes[20] == 429
+    other_visitor = client.post("/api/public/sunny-salon/bookings", json=taken, headers={"X-Forwarded-For": "203.0.113.9"})
+    assert other_visitor.status_code == 409
+
+
+def test_login_is_rate_limited(client):
+    codes = [client.post("/api/auth/login", json={"email": "x@example.com", "password": "guessing1"}).status_code for _ in range(11)]
+    assert codes[-1] == 429 and set(codes[:10]) == {401}
+
+
+def test_blank_names_and_far_future_bookings_are_rejected(client):
+    service_id = setup_salon(client)
+    assert client.post("/api/business/services", json={"name": "   ", "duration_min": 30, "price_thb": 1}).status_code == 422
+    far = (datetime.now(UTC) + timedelta(days=90)).replace(hour=3, minute=0, second=0, microsecond=0).isoformat()
+    r = client.post("/api/public/sunny-salon/bookings", json={"service_id": service_id, "starts_at": far, **CUSTOMER})
+    assert r.status_code == 422
+    blank = client.post("/api/public/sunny-salon/bookings",
+                        json={"service_id": service_id, "starts_at": far, **CUSTOMER, "customer_name": "  "})
+    assert blank.status_code == 422
+
+
 def test_owner_pages_need_login(client):
     assert client.get("/api/business").status_code == 401
 

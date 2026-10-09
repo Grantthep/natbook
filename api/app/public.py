@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from .db import get_db
 from .models import Booking, Business, Service
 from .owner import business_out
+from .ratelimit import booking_limit
 from .schemas import (
     BookingCreatedOut, BookingIn, BusinessOut, Category, CustomerBookingOut, ShopCard, ShopListItem, SlotsOut,
 )
@@ -88,17 +89,22 @@ def business_page(slug: str, db: Session = Depends(get_db)):
 def available_slots(slug: str, service_id: int, date: date, db: Session = Depends(get_db)):
     business = _business(slug, db)
     service = _service(business, service_id, db)
-    if date > datetime.now(UTC).date() + timedelta(days=MAX_DAYS_AHEAD):
-        raise HTTPException(422, f"You can book up to {MAX_DAYS_AHEAD} days ahead")
+    _check_not_too_far(date)
     return SlotsOut(date=date, slots=_slots(business, service, date, db))
 
 
-@router.post("/{slug}/bookings", response_model=BookingCreatedOut, status_code=201)
+def _check_not_too_far(day: date):
+    if day > datetime.now(UTC).date() + timedelta(days=MAX_DAYS_AHEAD):
+        raise HTTPException(422, f"You can book up to {MAX_DAYS_AHEAD} days ahead")
+
+
+@router.post("/{slug}/bookings", response_model=BookingCreatedOut, status_code=201, dependencies=[Depends(booking_limit)])
 def book(slug: str, body: BookingIn, db: Session = Depends(get_db)):
     business = _business(slug, db)
     service = _service(business, body.service_id, db)
     starts_at = body.starts_at.astimezone(UTC)
     day = starts_at.astimezone(ZoneInfo(business.timezone)).date()
+    _check_not_too_far(day)
     if starts_at not in _slots(business, service, day, db):
         raise HTTPException(409, "That time isn't available. Please pick another slot.")
 

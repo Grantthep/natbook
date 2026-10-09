@@ -66,9 +66,24 @@ cd web && npm run build && npm run lint
 
 GitHub Actions runs both on every push.
 
+## Deploy
+
+Free tiers: **Neon** for the database, **Render** for the API, **Vercel** for the website. The website forwards `/api/...` to the API (see `web/vercel.json`), so the browser sees one site and login cookies stay first-party.
+
+1. **Database (Neon).** Create a project at [neon.tech](https://neon.tech) and copy the connection string (`postgresql://…?sslmode=require`). The API creates its tables on first start.
+2. **API (Render).** On [render.com](https://render.com): **New → Blueprint**, then pick this repo. Render reads `render.yaml`, generates `SECRET_KEY` and asks for `DATABASE_URL`, where you paste the Neon string. When it's live, `https://<your-service>.onrender.com/api/health` returns `{"ok":true}`.
+3. **Website (Vercel).** If your Render URL isn't `natbook-api.onrender.com`, change it in `web/vercel.json` and push. On [vercel.com](https://vercel.com): **Add New → Project**, import this repo and set **Root Directory** to `web`. Vercel detects Vite and needs no other settings.
+
+Things to know:
+
+- On Render's free plan the API sleeps after 15 minutes without traffic. The first request after that takes up to a minute, and can time out once on the way through Vercel. Reload and it works.
+- Login, sign-up and booking are rate limited per visitor. The limits are kept in memory, which is fine for one Render instance (see `api/app/ratelimit.py`).
+- Tables are created automatically. Before changing the database schema once real shops are using it, add migrations (Alembic) so existing data is kept.
+- Never set `SEED_DEMO=true` in production.
+
 ## Roadmap
 
-- [ ] Deploy (Render + Neon + Vercel)
+- [ ] Database migrations with Alembic
 - [ ] Email confirmations and reminders (Resend + cron)
 - [ ] PromptPay deposits with Stripe
 - [ ] Multiple staff members per business

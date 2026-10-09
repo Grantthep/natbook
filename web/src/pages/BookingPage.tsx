@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { api, ApiError, type Booking, type Business, type Service } from '../api'
 import { categoryOf } from '../categories'
@@ -15,6 +15,12 @@ export default function BookingPage() {
   const business = useQuery({ queryKey: ['public', slug], queryFn: () => api<Business>(`/public/${slug}`) })
   const [service, setService] = useState<Service>()
   const [booked, setBooked] = useState<CreatedBooking>()
+  const name = business.data?.name
+  useEffect(() => {
+    if (!name) return
+    document.title = `${name} – book on NatBook`
+    return () => { document.title = 'NatBook – book appointments in Bangkok' }
+  }, [name])
 
   if (business.isPending) return <Page><p className="text-stone-500">Loading…</p></Page>
   if (business.error) {

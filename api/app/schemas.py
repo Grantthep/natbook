@@ -16,10 +16,15 @@ class UserOut(BaseModel):
     email: str
 
 
+class Input(BaseModel):
+    """Form input: trims spaces so a name of just spaces fails min_length."""
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
 Category = Literal["salon", "spa", "nails", "clinic", "dental", "fitness", "tutor", "pet"]
 
 
-class BusinessDetails(BaseModel):
+class BusinessDetails(Input):
     name: str = Field(min_length=1, max_length=100)
     category: Category
     area: str = Field(default="", max_length=60)
@@ -53,7 +58,7 @@ class HoursIn(BaseModel):
         return self
 
 
-class ServiceIn(BaseModel):
+class ServiceIn(Input):
     name: str = Field(min_length=1, max_length=100)
     duration_min: int = Field(ge=5, le=480)
     price_thb: int = Field(ge=0, le=1_000_000)
@@ -89,7 +94,7 @@ class SlotsOut(BaseModel):
     slots: list[datetime]
 
 
-class BookingIn(BaseModel):
+class BookingIn(Input):
     service_id: int
     starts_at: AwareDatetime
     customer_name: str = Field(min_length=1, max_length=100)

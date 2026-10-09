@@ -9,6 +9,7 @@ import BookingPage from './pages/BookingPage'
 import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import MyBookings, { ManageBooking } from './pages/MyBookings'
+import NotFound from './pages/NotFound'
 
 const queryClient = new QueryClient({
   // Don't retry "not logged in" or "not found": they won't fix themselves.
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/b/:slug" element={<BookingPage />} />
           <Route path="/my-bookings" element={<MyBookings />} />
           <Route path="/booking/:id" element={<ManageBooking />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

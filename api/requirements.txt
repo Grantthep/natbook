@@ -1,6 +1,6 @@
-fastapi[standard]
-sqlalchemy>=2
-psycopg[binary]
-pyjwt
-argon2-cffi
-tzdata
+fastapi[standard]==0.143.0
+SQLAlchemy==2.1.4
+psycopg[binary]==3.3.6
+PyJWT==2.15.1
+argon2-cffi==25.1.0
+tzdata==2026.5

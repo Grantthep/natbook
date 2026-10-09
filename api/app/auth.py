@@ -1,6 +1,4 @@
-import logging
 import os
-import secrets
 from datetime import UTC, datetime, timedelta
 
 import jwt
@@ -13,13 +11,16 @@ from sqlalchemy.orm import Session
 
 from .db import get_db
 from .models import User
+from .ratelimit import login_limit, register_limit
 from .schemas import Credentials, UserOut
 
 COOKIE = "session"
 TOKEN_TTL = timedelta(days=7)
-SECRET = os.getenv("SECRET_KEY") or secrets.token_hex(32)
-if not os.getenv("SECRET_KEY"):
-    logging.warning("SECRET_KEY not set: using a random key, so logins reset when the server restarts")
+# Signs login tokens. It must be the same for every server process and survive restarts,
+# so there's no random fallback: a missing key would log people out at random.
+SECRET = os.getenv("SECRET_KEY", "")
+if len(SECRET) < 16:
+    raise RuntimeError("Set SECRET_KEY to a long random string (dev.py and the tests set one for you)")
 
 hasher = PasswordHasher()
 DUMMY_HASH = hasher.hash("not-a-real-password")
@@ -45,7 +46,7 @@ def current_user(session: str | None = Cookie(default=None), db: Session = Depen
     return user
 
 
-@router.post("/register", response_model=UserOut, status_code=201)
+@router.post("/register", response_model=UserOut, status_code=201, dependencies=[Depends(register_limit)])
 def register(body: Credentials, response: Response, db: Session = Depends(get_db)):
     user = User(email=body.email.lower(), password_hash=hasher.hash(body.password))
     db.add(user)
@@ -57,7 +58,7 @@ def register(body: Credentials, response: Response, db: Session = Depends(get_db
     return user
 
 
-@router.post("/login", response_model=UserOut)
+@router.post("/login", response_model=UserOut, dependencies=[Depends(login_limit)])
 def login(body: Credentials, response: Response, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     try:

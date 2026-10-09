@@ -1,0 +1,17 @@
+# Render Blueprint for the API. The database is on Neon (free) and the website on Vercel; see README "Deploy".
+services:
+  - type: web
+    name: natbook-api
+    runtime: python
+    plan: free
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false # paste the Neon connection string when Render asks
+      - key: SECRET_KEY
+        generateValue: true
