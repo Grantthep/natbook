@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage'
 import BookingPage from './pages/BookingPage'
 import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
+import MyBookings, { ManageBooking } from './pages/MyBookings'
 
 const queryClient = new QueryClient({
   // Don't retry "not logged in" or "not found": they won't fix themselves.
@@ -24,6 +25,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/register" element={<AuthPage mode="register" />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/b/:slug" element={<BookingPage />} />
+          <Route path="/my-bookings" element={<MyBookings />} />
+          <Route path="/booking/:id" element={<ManageBooking />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

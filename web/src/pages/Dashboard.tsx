@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { api, ApiError, type Booking, type Business, type Hours, type User } from '../api'
 import { CATEGORIES, categoryOf } from '../categories'
 import { WEEKDAYS, dateTime, thb } from '../format'
-import { Button, Card, ErrorText, Field, Select, ShopCover, TextArea, TopBar } from '../ui'
+import { Button, Card, ErrorText, Field, Select, ShopAvatar, TextArea, TopBar } from '../ui'
 
 const DAY_MS = 24 * 60 * 60 * 1000 // bookings made in the last day get a "New" badge
 
@@ -61,7 +61,7 @@ function DetailsFields({ value, onChange }: { value: Details; onChange: (d: Deta
         onChange={(e) => onChange({ ...value, name: e.target.value })} />
       <div className="grid gap-4 sm:grid-cols-2">
         <Select label="Category" value={value.category} onChange={(e) => onChange({ ...value, category: e.target.value })}>
-          {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+          {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </Select>
         <Field label="Area" value={value.area} maxLength={60} placeholder="Ari, Sukhumvit 24, Silom…"
           onChange={(e) => onChange({ ...value, area: e.target.value })} />
@@ -86,7 +86,7 @@ function ShopDetails({ business }: { business: Business }) {
         <ErrorText error={update.error} />
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={update.isPending}>Save details</Button>
-          {update.isSuccess && <span className="text-sm font-semibold text-teal-800">Saved</span>}
+          {update.isSuccess && <span className="text-sm font-medium text-emerald-800">Saved</span>}
         </div>
       </form>
     </Card>
@@ -115,7 +115,7 @@ function CreateBusiness() {
           }}
         />
         <Field
-          label="Booking page link" value={slug} required pattern="[a-z0-9][a-z0-9-]{1,38}[a-z0-9]"
+          label="Booking page link" value={slug} required pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]"
           title="3-40 lowercase letters, numbers and dashes" onChange={(e) => setSlug(e.target.value)}
         />
         <p className="text-sm text-stone-600">Customers will book at {location.origin}/b/{slug || 'your-link'}</p>
@@ -132,15 +132,15 @@ function ShareLink({ business }: { business: Business }) {
   return (
     <Card>
       <div className="flex items-center gap-4">
-        <ShopCover category={business.category} className="h-16 w-16 shrink-0 rounded-2xl [&>span]:text-3xl" />
+        <ShopAvatar name={business.name} category={business.category} size="lg" />
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">{business.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{business.name}</h1>
           <p className="text-sm text-stone-500">{categoryOf(business.category).label}{business.area && ` · ${business.area}`}</p>
         </div>
       </div>
       <p className="mt-4 text-sm text-stone-600">Share your booking page with customers:</p>
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate rounded-lg bg-stone-100 px-3 py-2 text-teal-800 hover:underline">{url}</a>
+        <a href={url} target="_blank" rel="noreferrer" className="flex-1 truncate rounded-lg bg-stone-100 px-3 py-2 text-emerald-800 hover:underline">{url}</a>
         <Button variant="ghost" onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true))}>
           {copied ? 'Copied' : 'Copy link'}
         </Button>
@@ -162,35 +162,43 @@ function Bookings({ timezone }: { timezone: string }) {
     mutationFn: (id: number) => api<Booking>(`/business/bookings/${id}/cancel`, { method: 'POST' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] }),
   })
-  const confirmed = bookings.data?.filter((b) => b.status === 'confirmed') ?? []
+  const list = bookings.data ?? []
+  const now = bookings.dataUpdatedAt // time of the last refresh, so "New" stays in step with polling
 
   return (
     <Card title="Upcoming bookings" action={<span className="text-xs text-stone-500">Updates automatically</span>}>
       {bookings.isPending && <p className="text-stone-600">Loading…</p>}
       <ErrorText error={bookings.error ?? cancel.error} />
-      {bookings.isSuccess && confirmed.length === 0 && <p className="text-stone-600">No upcoming bookings yet.</p>}
+      {bookings.isSuccess && list.length === 0 && <p className="text-stone-600">No upcoming bookings yet.</p>}
       <ul className="divide-y divide-stone-200">
-        {confirmed.map((b) => (
-          <li key={b.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium">
-                {dateTime(b.starts_at, timezone)} · {b.service_name}
-                {Date.now() - Date.parse(b.created_at) < DAY_MS && (
-                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">New</span>
-                )}
-              </p>
-              <p className="text-sm text-stone-600">
-                {b.customer_name} · {b.customer_email}{b.customer_phone && ` · ${b.customer_phone}`}
-              </p>
-            </div>
-            <Button
-              variant="danger" disabled={cancel.isPending}
-              onClick={() => confirm(`Cancel ${b.customer_name}'s booking?`) && cancel.mutate(b.id)}
-            >
-              Cancel
-            </Button>
-          </li>
-        ))}
+        {list.map((b) => {
+          const cancelled = b.status === 'cancelled'
+          return (
+            <li key={b.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className={cancelled ? 'text-stone-400' : ''}>
+                <p className={`font-medium ${cancelled ? 'line-through' : ''}`}>
+                  {dateTime(b.starts_at, timezone)} · {b.service_name}
+                  {!cancelled && now - Date.parse(b.created_at) < DAY_MS && (
+                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">New</span>
+                  )}
+                </p>
+                <p className={`text-sm ${cancelled ? '' : 'text-stone-600'}`}>
+                  {b.customer_name} · {b.customer_email}{b.customer_phone && ` · ${b.customer_phone}`}
+                </p>
+              </div>
+              {cancelled ? (
+                <span className="text-sm text-stone-500">Cancelled</span>
+              ) : (
+                <Button
+                  variant="danger" disabled={cancel.isPending}
+                  onClick={() => confirm(`Cancel ${b.customer_name}'s booking?`) && cancel.mutate(b.id)}
+                >
+                  Cancel
+                </Button>
+              )}
+            </li>
+          )
+        })}
       </ul>
     </Card>
   )
@@ -266,7 +274,7 @@ function OpeningHours({ hours }: { hours: Hours[] }) {
         {days.map((d, i) => (
           <div key={i} className="flex flex-wrap items-center gap-2">
             <label className="flex w-32 items-center gap-2 text-sm font-medium">
-              <input type="checkbox" checked={d.open} onChange={(e) => setDay(i, { open: e.target.checked })} className="h-4 w-4 accent-teal-700" />
+              <input type="checkbox" checked={d.open} onChange={(e) => setDay(i, { open: e.target.checked })} className="h-4 w-4 accent-emerald-800" />
               {WEEKDAYS[i]}
             </label>
             {d.open ? (
@@ -283,7 +291,7 @@ function OpeningHours({ hours }: { hours: Hours[] }) {
       </div>
       <div className="mt-4 flex items-center gap-3">
         <Button onClick={() => update.mutate()} disabled={update.isPending}>Save hours</Button>
-        {update.isSuccess && <span className="text-sm text-teal-800">Saved</span>}
+        {update.isSuccess && <span className="text-sm text-emerald-800">Saved</span>}
       </div>
       <ErrorText error={update.error} />
     </Card>

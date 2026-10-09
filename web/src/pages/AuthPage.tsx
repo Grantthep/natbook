@@ -26,9 +26,9 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
     <div className="min-h-screen">
       <TopBar>{null}</TopBar>
       <div className="mx-auto max-w-sm px-4 py-12">
-        <h1 className="text-3xl font-extrabold tracking-tight">{isLogin ? 'Welcome back' : 'Get your booking page'}</h1>
+        <h1 className="text-2xl font-bold">{isLogin ? 'Shop owner login' : 'Add your shop to NatBook'}</h1>
         <p className="mb-6 mt-2 text-stone-600">
-          {isLogin ? 'Log in to manage your shop and bookings.' : 'Free for shops, clinics and tutors. Set up in 2 minutes.'}
+          {isLogin ? 'Manage your shop, opening hours and bookings.' : 'Create an account first, then add your services and opening hours. It only takes a few minutes.'}
         </p>
         <Card>
           <form onSubmit={onSubmit} className="space-y-4">
@@ -45,7 +45,7 @@ export default function AuthPage({ mode }: { mode: 'login' | 'register' }) {
         </Card>
         <p className="mt-4 text-center text-sm text-stone-600">
           {isLogin ? 'New here? ' : 'Already have an account? '}
-          <Link to={isLogin ? '/register' : '/login'} className="font-medium text-teal-800 hover:underline">
+          <Link to={isLogin ? '/register' : '/login'} className="font-medium text-emerald-800 underline">
             {isLogin ? 'Create an account' : 'Log in'}
           </Link>
         </p>

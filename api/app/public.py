@@ -1,4 +1,5 @@
 """Endpoints customers use on a business's booking page. No login needed."""
+import secrets
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -10,7 +11,9 @@ from sqlalchemy.orm import Session
 from .db import get_db
 from .models import Booking, Business, Service
 from .owner import business_out
-from .schemas import BookingIn, BookingOut, BusinessOut, Category, ShopCard, ShopListItem, SlotsOut
+from .schemas import (
+    BookingCreatedOut, BookingIn, BusinessOut, Category, CustomerBookingOut, ShopCard, ShopListItem, SlotsOut,
+)
 from .slots import free_slots
 
 router = APIRouter()
@@ -90,7 +93,7 @@ def available_slots(slug: str, service_id: int, date: date, db: Session = Depend
     return SlotsOut(date=date, slots=_slots(business, service, date, db))
 
 
-@router.post("/{slug}/bookings", response_model=BookingOut, status_code=201)
+@router.post("/{slug}/bookings", response_model=BookingCreatedOut, status_code=201)
 def book(slug: str, body: BookingIn, db: Session = Depends(get_db)):
     business = _business(slug, db)
     service = _service(business, body.service_id, db)
@@ -110,3 +113,37 @@ def book(slug: str, body: BookingIn, db: Session = Depends(get_db)):
     except IntegrityError:  # someone else booked the same time a moment earlier
         raise HTTPException(409, "That time was just taken. Please pick another slot.")
     return booking
+
+
+# Customers manage a booking through the private link they got when booking.
+bookings_router = APIRouter()
+
+
+def _customer_booking(booking_id: int, token: str, db: Session) -> Booking:
+    booking = db.get(Booking, booking_id)
+    if not booking or not secrets.compare_digest(booking.manage_token, token):
+        raise HTTPException(404, "Booking not found")
+    return booking
+
+
+def _customer_view(b: Booking) -> CustomerBookingOut:
+    return CustomerBookingOut(
+        id=b.id, shop_name=b.business.name, shop_slug=b.business.slug, timezone=b.business.timezone,
+        service_name=b.service.name, price_thb=b.service.price_thb, customer_name=b.customer_name,
+        starts_at=b.starts_at, ends_at=b.ends_at, status=b.status,
+    )
+
+
+@bookings_router.get("/{booking_id}", response_model=CustomerBookingOut)
+def view_booking(booking_id: int, token: str = Query(max_length=64), db: Session = Depends(get_db)):
+    return _customer_view(_customer_booking(booking_id, token, db))
+
+
+@bookings_router.post("/{booking_id}/cancel", response_model=CustomerBookingOut)
+def cancel_own_booking(booking_id: int, token: str = Query(max_length=64), db: Session = Depends(get_db)):
+    booking = _customer_booking(booking_id, token, db)
+    if booking.starts_at <= datetime.now(UTC):
+        raise HTTPException(409, "This appointment has already started, so it can't be cancelled online.")
+    booking.status = "cancelled"
+    db.commit()
+    return _customer_view(booking)

@@ -103,6 +103,24 @@ def test_owner_can_edit_shop_details(client):
     assert r.status_code == 200 and r.json()["area"] == "Thonglor" and r.json()["slug"] == "sunny-salon"
 
 
+def test_customer_views_and_cancels_with_private_link(client):
+    service_id = setup_salon(client)
+    chosen = slots(client, service_id, next_monday())[0]
+    created = client.post("/api/public/sunny-salon/bookings",
+                          json={"service_id": service_id, "starts_at": chosen, **CUSTOMER}).json()
+    link = f"/api/bookings/{created['id']}"
+    token = created["manage_token"]
+
+    assert client.get(link, params={"token": "wrong-token"}).status_code == 404
+    mine = client.get(link, params={"token": token}).json()
+    assert mine["shop_name"] == "Sunny Salon" and mine["status"] == "confirmed"
+
+    assert client.post(f"{link}/cancel", params={"token": token}).json()["status"] == "cancelled"
+    assert chosen in slots(client, service_id, next_monday())  # the time is free again
+    assert client.get("/api/business/bookings").json()[0]["status"] == "cancelled"  # owner sees it
+    assert "manage_token" not in client.get("/api/business/bookings").json()[0]
+
+
 def test_owner_pages_need_login(client):
     assert client.get("/api/business").status_code == 401
 

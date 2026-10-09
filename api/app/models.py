@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, time
 
 from sqlalchemy import DDL, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, event, func
@@ -70,8 +71,11 @@ class Booking(Base):
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(12), default="confirmed")
+    # Secret in the customer's "manage booking" link, since customers have no accounts.
+    manage_token: Mapped[str] = mapped_column(String(43), default=lambda: secrets.token_urlsafe(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     service: Mapped[Service] = relationship()
+    business: Mapped[Business] = relationship()
 
     @property
     def service_name(self):

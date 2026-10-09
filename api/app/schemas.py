@@ -109,3 +109,21 @@ class BookingOut(BaseModel):
     ends_at: datetime
     status: str
     created_at: datetime
+
+
+class BookingCreatedOut(BookingOut):
+    manage_token: str  # only ever sent to the customer who made the booking
+
+
+class CustomerBookingOut(BaseModel):
+    """What a customer sees on their "manage booking" page."""
+    id: int
+    shop_name: str
+    shop_slug: str
+    timezone: str
+    service_name: str
+    price_thb: int
+    customer_name: str
+    starts_at: datetime
+    ends_at: datetime
+    status: str
