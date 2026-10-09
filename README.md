@@ -72,7 +72,7 @@ Free tiers: **Neon** for the database, **Render** for the API, **Vercel** for th
 
 1. **Database (Neon).** Create a project at [neon.tech](https://neon.tech) and copy the connection string (`postgresql://…?sslmode=require`). The API creates its tables on first start.
 2. **API (Render).** On [render.com](https://render.com): **New → Blueprint**, then pick this repo. Render reads `render.yaml`, generates `SECRET_KEY` and asks for `DATABASE_URL`, where you paste the Neon string. When it's live, `https://<your-service>.onrender.com/api/health` returns `{"ok":true}`.
-3. **Website (Vercel).** If your Render URL isn't `natbook-api.onrender.com`, change it in `web/vercel.json` and push. On [vercel.com](https://vercel.com): **Add New → Project**, import this repo and set **Root Directory** to `web`. Vercel detects Vite and needs no other settings.
+3. **Website (Vercel).** If your Render URL isn't `natbook-api.onrender.com`, change it in `web/vercel.json` (this deployment uses `natbook-api-bqj1.onrender.com`) and push. On [vercel.com](https://vercel.com): **Add New → Project**, import this repo and set **Root Directory** to `web`. Vercel detects Vite and needs no other settings.
 
 Things to know:
 
