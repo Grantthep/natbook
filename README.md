@@ -32,8 +32,7 @@ web/  React + TypeScript (Vite)       api/  FastAPI + SQLAlchemy
   /register       owner sign-up         app/owner.py   business, services, hours, bookings
   /dashboard      owner dashboard       app/public.py  shop list + search, free slots, book
   /b/:slug        customer booking      app/slots.py   free-slot calculation
-  /my-bookings    customer's bookings
-                                        app/models.py  tables + no-overlap constraint
+  /my-bookings    customer's bookings   app/models.py  tables + no-overlap constraint
 ```
 
 The web app calls `/api/...` on its own domain: Vite proxies these calls in development, and a hosting rewrite does it in production. That keeps the login cookie same-site.
