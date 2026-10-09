@@ -4,6 +4,8 @@ A booking marketplace for Bangkok, in the spirit of QueQ. Customers browse salon
 
 *Nat (นัด) is Thai for "appointment".*
 
+**Live:** https://natbook.vercel.app
+
 **Stack:** FastAPI · PostgreSQL · SQLAlchemy · React · TypeScript · TanStack Query · Tailwind CSS · GitHub Actions
 
 ## How it works for owners and customers
