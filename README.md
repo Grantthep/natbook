@@ -25,7 +25,7 @@ A booking marketplace for Bangkok, in the spirit of QueQ. Customers browse salon
 web/  React + TypeScript (Vite)       api/  FastAPI + SQLAlchemy
   /               marketplace + search  app/auth.py    register, login, logout
   /register       owner sign-up         app/owner.py   business, services, hours, bookings
-  /dashboard      owner dashboard       app/public.py  booking page, free slots, book
+  /dashboard      owner dashboard       app/public.py  shop list + search, free slots, book
   /b/:slug        customer booking      app/slots.py   free-slot calculation
                                         app/models.py  tables + no-overlap constraint
 ```
